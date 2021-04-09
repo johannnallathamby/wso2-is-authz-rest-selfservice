@@ -33,6 +33,7 @@ import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserStoreException;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 import static org.wso2.carbon.identity.extension.authz.rest.selfservice.Constants.*;
@@ -88,7 +89,7 @@ public class SelfServiceAuthzValve extends ValveBase {
         return false;
     }
 
-    private void setThreadLocalWrapper(SelfServiceAuthzCatalinaRequestWrapper wrapper) {
+    private void setThreadLocalWrapper(HttpServletRequest wrapper) {
 
         IdentityUtil.threadLocalProperties.get().put(REQUEST_WRAPPER, wrapper);
     }

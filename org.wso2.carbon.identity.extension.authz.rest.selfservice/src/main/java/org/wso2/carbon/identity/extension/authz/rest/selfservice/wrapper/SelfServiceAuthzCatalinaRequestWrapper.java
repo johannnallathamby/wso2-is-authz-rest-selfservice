@@ -6,10 +6,10 @@ import org.apache.catalina.Session;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.RequestFacade;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.core.AsyncContextImpl;
 import org.apache.catalina.mapper.MappingData;
-import org.apache.commons.io.IOUtils;
 import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.http.ServerCookies;
 
@@ -22,27 +22,24 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * A custom wrapper for the Catalina request to read the request body.
+ */
 public class SelfServiceAuthzCatalinaRequestWrapper extends Request {
 
     private final Request request;
-    private final SelfServiceAuthzHTTPServletRequestWrapper httpServletRequest;
-    private final String body;
 
     public SelfServiceAuthzCatalinaRequestWrapper(Request request) throws IOException {
 
         super(request.getConnector());
         this.request = request;
-        httpServletRequest = new SelfServiceAuthzHTTPServletRequestWrapper(request.getRequest());
-        this.body = IOUtils.toString(httpServletRequest.getReader());
-        //Reset the input Stream
-        httpServletRequest.resetInputStream();
-        request.setRequest(httpServletRequest);
+        this.request.setRequest(new SelfServiceAuthzHTTPServletRequestWrapper(request.getRequest()));
     }
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
 
-        ServletInputStream servletInputStream = this.httpServletRequest.getInputStream();
+        ServletInputStream servletInputStream = this.request.getRequest().getInputStream();
         return servletInputStream;
     }
 
@@ -50,11 +47,6 @@ public class SelfServiceAuthzCatalinaRequestWrapper extends Request {
     public BufferedReader getReader() throws IOException {
 
         return new BufferedReader(new InputStreamReader(this.getInputStream()));
-    }
-
-    public String getBody() {
-
-        return this.body;
     }
 
     @Override

@@ -34,10 +34,12 @@ import org.wso2.carbon.identity.extension.authz.rest.selfservice.exception.SelfS
 import org.wso2.carbon.identity.extension.authz.rest.selfservice.internal.SelfServiceAuthzDataHolder;
 import org.wso2.carbon.identity.extension.authz.rest.selfservice.util.Utils;
 import org.wso2.carbon.identity.extension.authz.rest.selfservice.wrapper.SelfServiceAuthzCatalinaRequestWrapper;
+import org.wso2.carbon.identity.extension.authz.rest.selfservice.wrapper.SelfServiceAuthzHTTPServletRequestWrapper;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -74,8 +76,10 @@ public class SelfServiceAuthzHandler extends AuthorizationHandler {
                 || IdentityUtil.threadLocalProperties.get().get(REQUEST_WRAPPER) == null) {
             return result;
         }
-        SelfServiceAuthzCatalinaRequestWrapper wrapper = (SelfServiceAuthzCatalinaRequestWrapper) IdentityUtil.threadLocalProperties.get()
-                .get(REQUEST_WRAPPER);
+        SelfServiceAuthzHTTPServletRequestWrapper wrapper = (SelfServiceAuthzHTTPServletRequestWrapper)
+                (((SelfServiceAuthzCatalinaRequestWrapper) IdentityUtil.threadLocalProperties.get()
+                .get(REQUEST_WRAPPER)).getRequest());
+
         String requestUri = wrapper.getRequestURI();
         String method = wrapper.getMethod();
         String queryString = wrapper.getQueryString();
@@ -94,6 +98,8 @@ public class SelfServiceAuthzHandler extends AuthorizationHandler {
                 isPermissiblePatch = isSelfServiceAuthzRole(requestUri) && isSelfAssignRequest(body);
             } catch (JsonProcessingException | SelfServiceAuthzException e) {
                 log.error("Error while parsing the request.", e);
+            } catch (IOException e) {
+                log.error("Error while reading the request body.", e);
             }
             if (isPermissiblePatch) {
                 result.setAuthorizationStatus(AuthorizationStatus.GRANT);

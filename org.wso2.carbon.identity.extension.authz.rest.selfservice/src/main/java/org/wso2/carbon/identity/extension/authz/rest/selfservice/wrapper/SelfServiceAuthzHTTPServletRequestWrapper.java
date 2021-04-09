@@ -11,75 +11,51 @@ import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.*;
 
 /**
- * Custom request wrapper to read the request body.
- *
- * @author asela@wso2.com
+ * A custom wrapper for the HTTPServletRequest to read the request body.
  */
 public class SelfServiceAuthzHTTPServletRequestWrapper extends HttpServletRequestWrapper {
 
     private static final Log log = LogFactory.getLog(SelfServiceAuthzHTTPServletRequestWrapper.class);
 
-    private byte[] rawData;
-    private final HttpServletRequest request;
-    private final ResettableServletInputStream servletStream;
+    private byte[] bytes;
 
-    public SelfServiceAuthzHTTPServletRequestWrapper(HttpServletRequest request) {
+    public SelfServiceAuthzHTTPServletRequestWrapper(HttpServletRequest request) throws IOException {
 
         super(request);
-        this.request = request;
-        this.servletStream = new ResettableServletInputStream();
-    }
-
-    public void resetInputStream() {
-
-        servletStream.stream = new ByteArrayInputStream(rawData);
+        bytes = IOUtils.toByteArray(request.getInputStream());
     }
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
 
-        if (rawData == null) {
-            rawData = IOUtils.toByteArray(this.request.getReader());
-            servletStream.stream = new ByteArrayInputStream(rawData);
-        }
-        return servletStream;
+        final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        ServletInputStream servletInputStream = new ServletInputStream() {
+            public boolean isFinished() {
+                return byteArrayInputStream.available() == 0;
+            }
+
+            public boolean isReady() {
+                return true;
+            }
+
+            public void setReadListener(ReadListener listener) {
+                System.out.println("Listener ");
+            }
+            public int read() throws IOException {
+                return byteArrayInputStream.read();
+            }
+        };
+        return servletInputStream;
     }
 
     @Override
     public BufferedReader getReader() throws IOException {
 
-        if (rawData == null) {
-            rawData = IOUtils.toByteArray(this.request.getReader());
-            servletStream.stream = new ByteArrayInputStream(rawData);
-        }
-        return new BufferedReader(new InputStreamReader(servletStream));
+        return new BufferedReader(new InputStreamReader(getInputStream()));
     }
 
-    private class ResettableServletInputStream extends ServletInputStream {
+    public String getBody() throws IOException {
 
-        private InputStream stream;
-
-        @Override
-        public int read() throws IOException {
-
-            return stream.read();
-        }
-
-        @Override
-        public boolean isFinished() {
-
-            return false;
-        }
-
-        @Override
-        public boolean isReady() {
-
-            return false;
-        }
-
-        @Override
-        public void setReadListener(ReadListener readListener) {
-
-        }
+        return IOUtils.toString(getReader());
     }
 }
